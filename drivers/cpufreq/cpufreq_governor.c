@@ -26,6 +26,9 @@
 #include "cpu_load_metric.h"
 #endif
 
+DEFINE_MUTEX(dbs_data_mutex);
+EXPORT_SYMBOL_GPL(dbs_data_mutex);
+
 static struct attribute_group *get_sysfs_attr(struct dbs_data *dbs_data)
 {
 	if (have_governor_per_policy())
@@ -551,7 +554,7 @@ int cpufreq_governor_dbs(struct cpufreq_policy *policy,
 	int ret;
 
 	/* Lock governor to block concurrent initialization of governor */
-	mutex_lock(&cdata->mutex);
+	mutex_lock(&dbs_data_mutex);
 
 	if (have_governor_per_policy())
 		dbs_data = policy->governor_data;
@@ -584,7 +587,7 @@ int cpufreq_governor_dbs(struct cpufreq_policy *policy,
 	}
 
 unlock:
-	mutex_unlock(&cdata->mutex);
+	mutex_unlock(&dbs_data_mutex);
 
 	return ret;
 }
