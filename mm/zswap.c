@@ -1263,6 +1263,12 @@ static int zswap_frontswap_store(unsigned type, pgoff_t offset,
 	u32 checksum = 0;
 #endif
 
+	/* THP isn't supported */
+	if (PageTransHuge(page)) {
+		ret = -EINVAL;
+		goto reject;
+	}
+
 	if (!zswap_enabled || !tree) {
 		ret = -ENODEV;
 		goto reject;
