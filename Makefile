@@ -672,8 +672,6 @@ ARCH_CFLAGS :=
 include arch/$(SRCARCH)/Makefile
 
 KBUILD_CFLAGS	+= $(call cc-option,-fno-delete-null-pointer-checks,)
-# Disable all maybe-uninitialized warnings
-KBUILD_CFLAGS	+= $(call cc-disable-warning,maybe-uninitialized,)
 KBUILD_CFLAGS	+= $(call cc-disable-warning,frame-address,)
 KBUILD_CFLAGS	+= $(call cc-disable-warning, format-truncation)
 KBUILD_CFLAGS	+= $(call cc-disable-warning, format-overflow)
@@ -691,6 +689,7 @@ KBUILD_CFLAGS   += -O2
 endif
 endif
 
+<<<<<<< HEAD
 # Disable unused-constant-variable warnings
 KBUILD_CFLAGS	+= $(call cc-disable-warning,unused-const-variable,)
 
@@ -699,6 +698,11 @@ KBUILD_CFLAGS   += $(call cc-disable-warning,format-truncation,)
 
 # Needed to unbreak GCC 7.x and above
 KBUILD_CFLAGS   += $(call cc-option,-fno-store-merging,)
+=======
+ifdef CONFIG_CC_DISABLE_WARN_MAYBE_UNINITIALIZED
+KBUILD_CFLAGS   += -Wno-maybe-uninitialized
+endif
+>>>>>>> c50c2c2ed69e... kbuild: compute false-positive -Wmaybe-uninitialized cases in Kconfig
 
 # Tell gcc to never replace conditional load with a non-conditional one
 KBUILD_CFLAGS	+= $(call cc-option,--param=allow-store-data-races=0)
