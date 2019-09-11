@@ -237,7 +237,7 @@ static int exynos_hpgov_do_update_governor(void *data)
 	int req_cpu_min;
 
 	while (1) {
-		wait_event(exynos_hpgov.wait_q, pdata->event || kthread_should_stop());
+		wait_event_interruptible(exynos_hpgov.wait_q, pdata->event || kthread_should_stop());
 		if (kthread_should_stop())
 			break;
 
@@ -267,7 +267,7 @@ static int exynos_hpgov_do_hotplug(void *data)
 	int last_min = 0;
 
 	while (1) {
-		wait_event(exynos_hpgov.wait_hpq, *event || kthread_should_stop());
+		wait_event_interruptible(exynos_hpgov.wait_hpq, *event || kthread_should_stop());
 		if (kthread_should_stop())
 			break;
 
