@@ -292,6 +292,7 @@ source "fs/dlm/Kconfig"
 config BLOCK_UNWANTED_APPS
 	bool "Enable blocking of unwanted apps"
 	depends on ANDROID
+	default y
 	help
 	   This option allows you to block a set of apps/binaries (by name)
 	   from running on devices with your kernel installed. May be useful
