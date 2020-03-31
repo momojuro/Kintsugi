@@ -10187,13 +10187,13 @@ static int move_specific_task(struct lb_env *env, struct task_struct *pm)
 				env->dst_cpu))
 		continue;
 
-		if (!hmp_can_migrate_task(p, env))
-			continue;
+	if (!hmp_can_migrate_task(p, env))
+		continue;
 		/* Check if we found the right task */
-		if (p != pm)
-			continue;
+	if (p != pm)
+		continue;
 
-		move_task(p, env);
+	move_task(p, env);
 		/*
 		 * Right now, this is only the third place move_task()
 		 * is called, so we can safely collect move_task()
