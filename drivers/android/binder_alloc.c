@@ -230,7 +230,7 @@ static int binder_update_page_range(struct binder_alloc *alloc, int allocate,
 
 	if (!vma && need_mm) {
 		binder_alloc_debug(BINDER_DEBUG_USER_ERROR,
-			%d: binder_alloc_buf failed to map pages in userspace, no vma\n",
+			"%d: binder_alloc_buf failed to map pages in userspace, no vma\n",
 			alloc->pid);
 		goto err_no_vma;
 	}
