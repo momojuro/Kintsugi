@@ -19,3 +19,5 @@ obj-$(CONFIG_SOC_EMULATOR8895)		+= emulator8895/cal_data.o
 endif
 obj-$(CONFIG_SOC_EXYNOS7872)		+= exynos7872/cal_data.o
 obj-$(CONFIG_SOC_EXYNOS7885)		+= exynos7885/cal_data.o
+
+subdir-ccflags-y += -Wno-sizeof-pointer-div
