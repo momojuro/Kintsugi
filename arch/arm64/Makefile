@@ -50,10 +50,6 @@ KBUILD_AFLAGS	+= $(lseinstr)
 
 KBUILD_CFLAGS	+= $(call cc-ifversion, -ge, 0500, -DCONFIG_ARCH_SUPPORTS_INT128)
 
-ifeq ($(CONFIG_ARCH_EXYNOS7), y)
-KBUILD_CFLAGS	+= -mcpu=cortex-a73.cortex-a53
-endif
-
 ifeq ($(CONFIG_CPU_BIG_ENDIAN), y)
 KBUILD_CPPFLAGS	+= -mbig-endian
 AS		+= -EB
