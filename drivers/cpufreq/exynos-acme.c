@@ -847,8 +847,8 @@ static __init int init_table(struct exynos_cpufreq_domain *domain)
 	for (index = 0; index < domain->table_size; index++) {
 		domain->freq_table[index].driver_data = index;
 
-		/* Undervolt by 100 mV */
-		volt_table[index] -= 100000;
+		/* Undervolt by 75 mV */
+		volt_table[index] -= 75000;
 
 		if (table[index] > domain->max_freq)
 			domain->freq_table[index].frequency = CPUFREQ_ENTRY_INVALID;
