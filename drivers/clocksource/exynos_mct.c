@@ -417,7 +417,6 @@ static int set_state_shutdown(struct clock_event_device *evt)
 	mevt = container_of(evt, struct mct_clock_event_device, evt);
 	exynos4_mct_tick_stop(mevt, 1);
 	pr_debug("%s: mct_tick_stop (cpu%d)\n", __func__, cpu);
-	exynos4_mct_tick_clear(mevt);
 	return 0;
 }
 
@@ -445,26 +444,6 @@ static int set_state_resume(struct clock_event_device *evt)
 
 	exynos4_mct_write(TICK_BASE_CNT, mevt->base + MCT_L_TCNTB_OFFSET);
 	return 0;
-}
-
-static irqreturn_t exynos4_mct_tick_isr(int irq, void *dev_id)
-{
-	struct mct_clock_event_device *mevt = dev_id;
-	struct clock_event_device *evt = &mevt->evt;
-
-	/*
-	 * This is for supporting oneshot mode.
-	 * Mct would generate interrupt periodically
-	 * without explicit stopping.
-	 */
-	if (!clockevent_state_periodic(&mevt->evt))
-		exynos4_mct_tick_stop(mevt, 0);
-
-	exynos4_mct_tick_clear(mevt);
-
-	evt->event_handler(evt);
-
-	return IRQ_HANDLED;
 }
 
 static void exynos4_mct_tick_dump(unsigned int cpu)
@@ -495,6 +474,26 @@ static int exynos4_mct_hardlockup_handler(struct notifier_block *nb,
 
 	exynos4_mct_tick_dump(*cpu);
 	return 0;
+}
+
+static irqreturn_t exynos4_mct_tick_isr(int irq, void *dev_id)
+{
+	struct mct_clock_event_device *mevt = dev_id;
+	struct clock_event_device *evt = &mevt->evt;
+
+	/*
+	 * This is for supporting oneshot mode.
+	 * Mct would generate interrupt periodically
+	 * without explicit stopping.
+	 */
+	if (!clockevent_state_periodic(&mevt->evt))
+		exynos4_mct_tick_stop(mevt, 0);
+
+	exynos4_mct_tick_clear(mevt);
+
+	evt->event_handler(evt);
+
+	return IRQ_HANDLED;
 }
 
 static int exynos4_local_timer_setup(struct mct_clock_event_device *mevt)
