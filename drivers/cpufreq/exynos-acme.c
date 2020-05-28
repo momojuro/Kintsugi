@@ -847,7 +847,7 @@ static __init int init_table(struct exynos_cpufreq_domain *domain)
 	for (index = 0; index < domain->table_size; index++) {
 		domain->freq_table[index].driver_data = index;
 
-		/* Undervolt by 100 mV */
+		/* Undervolt the big and little CPU clusters by 100 mV */
 		volt_table[index] -= 100000;
 
 		if (table[index] > domain->max_freq)
@@ -1087,7 +1087,7 @@ static int init_dm(struct exynos_cpufreq_domain *domain,
 	return register_exynos_dm_freq_scaler(domain->dm_type, dm_scaler);
 }
 
-//--------------------------------------Big and little CPU clusters' tweaking-----------------------------------//
+//--------------------------------------Big and little CPU clusters' underclocking-----------------------------------//
 
 // Underclocking the little CPU clusters
 static unsigned long arg_cpu_min_c1 = 343000; /*343 Mhz*/
@@ -1125,25 +1125,7 @@ static __init int cpufreq_read_cpu_min_c2(char *cpu_min_c2)
 }
 __setup("cpu_min_c2=", cpufreq_read_cpu_min_c2);
 
-// Overclocking the little CPU clusters
-static unsigned long arg_cpu_max_c1 = 1690000; /*1.69 Ghz*/
-
-static int __init cpufreq_read_cpu_max_c1(char *cpu_max_c1)
-{
-	unsigned long ui_khz;
-	int ret;
-
-	ret = kstrtoul(cpu_max_c1, 0, &ui_khz);
-	if (ret)
-		return -EINVAL;
-
-	arg_cpu_max_c1 = ui_khz;
-	printk("cpu_max_c1=%lu\n", arg_cpu_max_c1);
-	return ret;
-}
-__setup("cpu_max_c1=", cpufreq_read_cpu_max_c1);
-
-//--------------------------------------End of the big and little CPU clusters' tweaking-------------------------------------//
+//--------------------------------------End of the big and little CPU clusters' undervolting-------------------------------------//
 
 static __init int init_domain(struct exynos_cpufreq_domain *domain,
 					struct device_node *dn)
@@ -1169,11 +1151,6 @@ static __init int init_domain(struct exynos_cpufreq_domain *domain,
 #endif
 	if (!of_property_read_u32(dn, "min-freq", &val))
 		domain->min_freq = max(domain->min_freq, val);
-
-// Related to the little CPU clusters' overclocking
-	if (domain->id == 0) {
-		domain->max_freq = arg_cpu_max_c1;
-	}
 
 // Related to the big and little CPU clusters' underclocking
 	if (domain->id == 0) {
