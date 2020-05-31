@@ -49,7 +49,9 @@
 #include <linux/sched/deadline.h>
 #include <linux/timer.h>
 #include <linux/freezer.h>
+#ifdef CONFIG_EXYNOS_SNAPSHOT_HRTIMER
 #include <linux/exynos-ss.h>
+#endif
 
 #include <asm/uaccess.h>
 
@@ -1309,11 +1311,11 @@ static void __run_hrtimer(struct hrtimer_cpu_base *cpu_base,
 	 */
 	raw_spin_unlock(&cpu_base->lock);
 	trace_hrtimer_expire_entry(timer, now);
-#ifdef EXYNOS_SNAPSHOT_HRTIMER
+#ifdef CONFIG_EXYNOS_SNAPSHOT_HRTIMER
 	exynos_ss_hrtimer(timer, &now->tv64, fn, ESS_FLAG_IN);
 #endif
 	restart = fn(timer);
-#ifdef EXYNOS_SNAPSHOT_HRTIMER
+#ifdef CONFIG_EXYNOS_SNAPSHOT_HRTIMER
 	exynos_ss_hrtimer(timer, &now->tv64, fn, ESS_FLAG_OUT);
 #endif
 	trace_hrtimer_expire_exit(timer);
