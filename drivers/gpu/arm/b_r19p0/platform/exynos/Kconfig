@@ -42,7 +42,7 @@ config MALI_RT_PM
 config MALI_EXYNOS_TRACE
     bool "Enable EXYNOS kbase tracing"
     depends on MALI_MIDGARD
-    default y
+    default n
     help
       Enables tracing in kbase.  Trace log available through
       the "mali_trace" debugfs file, when the CONFIG_DEBUG_FS is enabled
