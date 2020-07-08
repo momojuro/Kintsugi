@@ -1090,7 +1090,7 @@ static int init_dm(struct exynos_cpufreq_domain *domain,
 //--------------------------------------Big and little CPU clusters' underclocking-----------------------------------//
 
 // Underclocking the little CPU clusters
-static unsigned long arg_cpu_min_c1 = 343000; /*343 Mhz*/
+static unsigned long arg_cpu_min_c1 = 208000; /*208 Mhz*/
 
 static int __init cpufreq_read_cpu_min_c1(char *cpu_min_c1)
 {
