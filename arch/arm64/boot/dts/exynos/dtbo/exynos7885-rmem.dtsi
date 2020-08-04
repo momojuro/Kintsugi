@@ -37,11 +37,13 @@
 			reg = <0x0 0xFFC00000 0x400000>;
 		};
 		
+#if 0
 		tima_mem: tima_region@0xB8000000 {
 			compatible = "removed-dma-pool";
 			reg = <0x0 0xB8000000 0x200000>;
 		};
-	
+#endif	
+
 		sec_debug_magic {
 			compatible = "exynos,sec_debug_magic";
 			reg = <0x0 0x80000000 0x1000>;
