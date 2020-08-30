@@ -155,6 +155,7 @@ static int slsi_add_to_scan_list(struct slsi_dev *sdev, struct netdev_vif *ndev_
 	struct ieee80211_mgmt *mgmt = fapi_get_mgmt(skb);
 	bool found = 0, skb_stored = 0;
 	int current_rssi, current_band;
+	bool is_hidden = 0, ssid_matched = 0;
 
 	SLSI_MUTEX_LOCK(ndev_vif->scan_result_mutex);
 	head = ndev_vif->scan[scan_id].scan_results;
@@ -165,7 +166,12 @@ static int slsi_add_to_scan_list(struct slsi_dev *sdev, struct netdev_vif *ndev_
 			2000) == 2 ? SLSI_FREQ_BAND_2GHZ : SLSI_FREQ_BAND_5GHZ;
 
 	while (scan_result) {
-		if (SLSI_ETHER_EQUAL(scan_result->bssid, mgmt->bssid) && (scan_result->band == current_band)) {
+		is_hidden = scan_result->hidden && (!scan_ssid || !scan_ssid[1] || scan_ssid[2] == '\0');
+		ssid_matched = scan_ssid && scan_ssid[1] && scan_result->ssid_length &&
+			       (scan_ssid[1] == scan_result->ssid_length) &&
+			       !memcmp(&scan_ssid[2], scan_result->ssid, scan_ssid[1]);
+		if ((SLSI_ETHER_EQUAL(scan_result->bssid, mgmt->bssid) && (scan_result->band == current_band)) &&
+		    (is_hidden || ssid_matched)) {
 			/*entry exists for bssid*/
 			if (!scan_result->probe_resp && ieee80211_is_probe_resp(mgmt->frame_control)) {
 				scan_result->probe_resp = skb;
@@ -229,6 +235,12 @@ static int slsi_add_to_scan_list(struct slsi_dev *sdev, struct netdev_vif *ndev_
 
 		current_result->rssi = current_rssi;
 		current_result->band = current_band;
+		if (scan_ssid && scan_ssid[1]) {
+			memcpy(current_result->ssid, &scan_ssid[2], scan_ssid[1]);
+			current_result->ssid_length = scan_ssid[1];
+		} else {
+			current_result->ssid_length = 0;
+		}
 		if (ieee80211_is_beacon(mgmt->frame_control)) {
 			current_result->beacon = skb;
 			if (!scan_ssid || !scan_ssid[1] || scan_ssid[2] == '\0')
@@ -324,6 +336,10 @@ void slsi_rx_scan_ind(struct slsi_dev *sdev, struct net_device *dev, struct sk_b
 #endif
 
 	scan_ssid = cfg80211_find_ie(WLAN_EID_SSID, mgmt->u.probe_resp.variable, ie_len);
+	if (scan_ssid && scan_ssid[1] && ((ie_len - (scan_ssid - mgmt->u.probe_resp.variable) + 2) < scan_ssid[1])) {
+		slsi_kfree_skb(skb);
+		return;
+	}
 
 	if (sdev->p2p_certif && (ndev_vif->iftype == NL80211_IFTYPE_P2P_CLIENT) && (scan_id == (ndev_vif->ifnum << 8 | SLSI_SCAN_HW_ID))) {
 		/* When supplicant receives a peer GO probe response with selected registrar set and group capability as 0,
@@ -889,15 +905,15 @@ int slsi_set_band_any_auto_channel(struct slsi_dev *sdev, struct netdev_vif  *nd
 	memset(&ch_info_5g, 0, sizeof(ch_info_5g));
 	memset(&ch_info_2g, 0, sizeof(ch_info_2g));
 
-	for(i = MAX_24G_CHANNELS; i < MAX_CHAN_VALUE_ACS; i++) {
+	for (i = MAX_24G_CHANNELS; i < MAX_CHAN_VALUE_ACS; i++) {
 		ch_info_5g[j] = ch_info[i];
 		j++;
 	}
 	ret = slsi_set_5g_auto_channel(sdev, ndev_vif, &acs_selected_channels_5g, ch_info_5g);
 
-	if(ret == 0) {
+	if (ret == 0) {
 		best_channel_5g = acs_selected_channels_5g.pri_channel;
-		for(i = 0; i < MAX_5G_CHANNELS; i++) {
+		for (i = 0; i < MAX_5G_CHANNELS; i++) {
 			if (ch_info_5g[i].chan == best_channel_5g) {
 				best_channel_5g_num_ap = ch_info_5g[i].num_ap;
 				break;
@@ -914,14 +930,14 @@ int slsi_set_band_any_auto_channel(struct slsi_dev *sdev, struct netdev_vif  *nd
 
 	SLSI_DBG3(sdev, SLSI_MLME, "5G AP threshold exceed, trying to select from 2G band\n");
 
-	for(i = 0; i < MAX_24G_CHANNELS; i++) {
+	for (i = 0; i < MAX_24G_CHANNELS; i++) {
 		ch_info_2g[i] = ch_info[i];
 	}
 	ret = slsi_set_2g_auto_channel(sdev, ndev_vif, &acs_selected_channels_2g, ch_info_2g);
 
-	if(ret == 0) {
+	if (ret == 0) {
 		best_channel_2g = acs_selected_channels_2g.pri_channel;
-		for(i = 0; i < MAX_24G_CHANNELS; i++) {
+		for (i = 0; i < MAX_24G_CHANNELS; i++) {
 			if (ch_info_2g[i].chan == best_channel_2g) {
 				best_channel_2g_num_ap = ch_info_2g[i].num_ap;
 				break;
@@ -935,7 +951,7 @@ int slsi_set_band_any_auto_channel(struct slsi_dev *sdev, struct netdev_vif  *nd
 		} else {
 			/* Based on min no of APs selecting channel from that band */
 			/* If no. of APs are equal, selecting the 5G channel */
-			if(best_channel_5g_num_ap > best_channel_2g_num_ap)
+			if (best_channel_5g_num_ap > best_channel_2g_num_ap)
 				*acs_selected_channels = acs_selected_channels_2g;
 			else
 				*acs_selected_channels = acs_selected_channels_5g;
@@ -1004,12 +1020,12 @@ struct slsi_acs_chan_info *slsi_acs_scan_results(struct slsi_dev *sdev, struct n
 			  ies_len);
 
 		idx = slsi_find_chan_idx(scan_channel->hw_value, ndev_vif->scan[SLSI_SCAN_HW_ID].acs_request->hw_mode);
-		SLSI_DBG3(sdev, SLSI_MLME, "chan_idx:%d chan_value: %d\n", idx, ch_info[idx].chan);
-
 		if (idx < 0) {
 			SLSI_DBG3(sdev, SLSI_MLME, "idx is not in range idx=%d\n", idx);
 			goto next_scan;
 		}
+		SLSI_DBG3(sdev, SLSI_MLME, "chan_idx:%d chan_value: %d\n", idx, ch_info[idx].chan);
+
 		if (ch_info[idx].chan) {
 			ch_info[idx].num_ap += 1;
 			ie = cfg80211_find_ie(WLAN_EID_QBSS_LOAD, mgmt->u.beacon.variable, ies_len);
@@ -1767,15 +1783,15 @@ void slsi_rx_connected_ind(struct slsi_dev *sdev, struct net_device *dev, struct
 {
 	struct netdev_vif *ndev_vif = netdev_priv(dev);
 	struct slsi_peer  *peer = NULL;
-	u16               aid = fapi_get_u16(skb, u.mlme_connected_ind.association_identifier);
+	u16               peer_index = fapi_get_u16(skb, u.mlme_connected_ind.peer_index);
 
-	/* For AP mode, peer_index value is equivalent to aid(association_index) value */
+	/* For AP mode, peer_index value is equivalent to peer_index value */
 
 	SLSI_MUTEX_LOCK(ndev_vif->vif_mutex);
 
 	SLSI_NET_DBG1(dev, SLSI_MLME, "mlme_connected_ind(vif:%d, peer_index:%d)\n",
 		      fapi_get_vif(skb),
-		      aid);
+		      peer_index);
 	SLSI_INFO(sdev, "Received Association Response\n");
 
 	if (!ndev_vif->activated) {
@@ -1789,14 +1805,14 @@ void slsi_rx_connected_ind(struct slsi_dev *sdev, struct net_device *dev, struct
 	switch (ndev_vif->vif_type) {
 	case FAPI_VIFTYPE_AP:
 	{
-		if (aid < SLSI_PEER_INDEX_MIN || aid > SLSI_PEER_INDEX_MAX) {
-			SLSI_NET_ERR(dev, "Received incorrect peer_index: %d\n", aid);
+		if (peer_index < SLSI_PEER_INDEX_MIN || peer_index > SLSI_PEER_INDEX_MAX) {
+			SLSI_NET_ERR(dev, "Received incorrect peer_index: %d\n", peer_index);
 			goto exit_with_lock;
 		}
 
-		peer = slsi_get_peer_from_qs(sdev, dev, aid - 1);
+		peer = slsi_get_peer_from_qs(sdev, dev, peer_index - 1);
 		if (!peer) {
-			SLSI_NET_ERR(dev, "Peer (aid:%d) Not Found - Disconnect peer\n", aid);
+			SLSI_NET_ERR(dev, "Peer (peer_index:%d) Not Found - Disconnect peer\n", peer_index);
 			goto exit_with_lock;
 		}
 
@@ -1807,7 +1823,7 @@ void slsi_rx_connected_ind(struct slsi_dev *sdev, struct net_device *dev, struct
 			slsi_ps_port_control(sdev, dev, peer, SLSI_STA_CONN_STATE_DOING_KEY_CONFIG);
 		} else {
 			peer->connected_state = SLSI_STA_CONN_STATE_CONNECTED;
-			slsi_mlme_connected_resp(sdev, dev, aid);
+			slsi_mlme_connected_resp(sdev, dev, peer_index);
 			slsi_ps_port_control(sdev, dev, peer, SLSI_STA_CONN_STATE_CONNECTED);
 		}
 		slsi_rx_buffered_frames(sdev, dev, peer);
@@ -1978,12 +1994,12 @@ void slsi_rx_connect_ind(struct slsi_dev *sdev, struct net_device *dev, struct s
 			SLSI_INFO(sdev, "Connect failed,Result code:AUTH_NO_ACK\n");
 		} else if (fw_result_code == FAPI_RESULTCODE_ASSOC_NO_ACK) {
 			SLSI_INFO(sdev, "Connect failed,Result code:ASSOC_NO_ACK\n");
-		} else if (fw_result_code >= FAPI_RESULTCODE_AUTH_FAILED_CODE && fw_result_code <= 0x81FF) {
-			if (fw_result_code != FAPI_RESULTCODE_AUTH_FAILED_CODE)
+		} else if (fw_result_code >= 0x8100 && fw_result_code <= 0x81FF) {
+			if (fw_result_code != 0x8100)
 				fw_result_code = fw_result_code & 0x00FF;
 			SLSI_INFO(sdev, "Connect failed(Auth failure), Result code:0x%04x\n", fw_result_code);
-		} else if (fw_result_code >= FAPI_RESULTCODE_ASSOC_FAILED_CODE && fw_result_code <= 0x82FF) {
-			if (fw_result_code != FAPI_RESULTCODE_ASSOC_FAILED_CODE)
+		} else if (fw_result_code >= 0x8200 && fw_result_code <= 0x82FF) {
+			if (fw_result_code != 0x8200)
 				fw_result_code = fw_result_code & 0x00FF;
 			SLSI_INFO(sdev, "Connect failed(Assoc Failure), Result code:0x%04x\n", fw_result_code);
 			if (fapi_get_datalen(skb)) {
@@ -2289,10 +2305,10 @@ void slsi_rx_procedure_started_ind(struct slsi_dev *sdev, struct net_device *dev
 
 	SLSI_MUTEX_LOCK(ndev_vif->vif_mutex);
 
-	SLSI_NET_DBG1(dev, SLSI_MLME, "mlme_procedure_started_ind(vif:%d, type:%d, aid:%d)\n",
+	SLSI_NET_DBG1(dev, SLSI_MLME, "mlme_procedure_started_ind(vif:%d, type:%d, peer_index:%d)\n",
 		      fapi_get_vif(skb),
 		      fapi_get_u16(skb, u.mlme_procedure_started_ind.procedure_type),
-		      fapi_get_u16(skb, u.mlme_procedure_started_ind.association_identifier));
+		      fapi_get_u16(skb, u.mlme_procedure_started_ind.peer_index));
 	SLSI_INFO(sdev, "Send Association Request\n");
 
 	if (!ndev_vif->activated) {
@@ -2305,20 +2321,20 @@ void slsi_rx_procedure_started_ind(struct slsi_dev *sdev, struct net_device *dev
 		switch (ndev_vif->vif_type) {
 		case FAPI_VIFTYPE_AP:
 		{
-			u16 aid = fapi_get_u16(skb, u.mlme_procedure_started_ind.association_identifier);
+			u16 peer_index = fapi_get_u16(skb, u.mlme_procedure_started_ind.peer_index);
 
 			/* Check for MAX client */
 			if ((ndev_vif->peer_sta_records + 1) > SLSI_AP_PEER_CONNECTIONS_MAX) {
-				SLSI_NET_ERR(dev, "MAX Station limit reached. Ignore ind for aid:%d\n", aid);
+				SLSI_NET_ERR(dev, "MAX Station limit reached. Ignore ind for peer_index:%d\n", peer_index);
 				goto exit_with_lock;
 			}
 
-			if (aid < SLSI_PEER_INDEX_MIN || aid > SLSI_PEER_INDEX_MAX) {
-				SLSI_NET_ERR(dev, "Received incorrect aid: %d\n", aid);
+			if (peer_index < SLSI_PEER_INDEX_MIN || peer_index > SLSI_PEER_INDEX_MAX) {
+				SLSI_NET_ERR(dev, "Received incorrect peer_index: %d\n", peer_index);
 				goto exit_with_lock;
 			}
 
-			peer = slsi_peer_add(sdev, dev, (fapi_get_mgmt(skb))->sa, aid);
+			peer = slsi_peer_add(sdev, dev, (fapi_get_mgmt(skb))->sa, peer_index);
 			if (!peer) {
 				SLSI_NET_ERR(dev, "Peer NOT Created\n");
 				goto exit_with_lock;
@@ -2358,7 +2374,7 @@ void slsi_rx_procedure_started_ind(struct slsi_dev *sdev, struct net_device *dev
 		break;
 	case FAPI_PROCEDURETYPE_DEVICE_DISCOVERED:
 		/* Expected only in P2P Device and P2P GO role */
-		if (!SLSI_IS_VIF_INDEX_P2P(ndev_vif) && (ndev_vif->iftype != NL80211_IFTYPE_P2P_GO)){
+		if (!SLSI_IS_VIF_INDEX_P2P(ndev_vif) && (ndev_vif->iftype != NL80211_IFTYPE_P2P_GO)) {
 			SLSI_NET_DBG1(dev, SLSI_MLME, "PROCEDURETYPE_DEVICE_DISCOVERED recd in non P2P role\n");
 			goto exit_with_lock;
 		}

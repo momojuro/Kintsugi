@@ -925,7 +925,7 @@ static int s2mu205_chg_set_property(struct power_supply *psy,
 				s2mu205_write_reg(charger->i2c, 0x70, 0x0);
 				s2mu205_update_reg(charger->i2c, S2MU205_CHG_CTRL0, 0x30, 0x30);
 
-				mdelay(100);
+				msleep(100);
 
 				/* QBAT off for prevent SMPL when detach cable */
 				s2mu205_update_reg(charger->i2c, 0x2A, 0xC0, 0xC0);
@@ -1207,7 +1207,7 @@ static void s2mu205_ivr_irq_work(struct work_struct *work)
 			reduce_input_current(charger);
 			ivr_cnt = 0;
 		}
-		mdelay(50);
+		msleep(50);
 
 		if (!(ivr_state & IVR_STATUS)) {
 			pr_info("%s: EXIT IVR WORK: check value (0x13:0x%02x, input current:%d)\n", __func__,

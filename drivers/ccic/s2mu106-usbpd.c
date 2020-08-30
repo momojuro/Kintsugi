@@ -1248,7 +1248,8 @@ static int s2mu106_set_power_role(void *_data, int val)
 	struct usbpd_data *data = (struct usbpd_data *) _data;
 	struct s2mu106_usbpd_data *pdic_data = data->phy_driver_data;
 
-	pr_info("%s, power_role(%d)\n", __func__, val);
+	pr_info("%s, power_role(%d->%d)\n", __func__,
+			pdic_data->power_role, val);
 
 	if (val == USBPD_SINK) {
 		pdic_data->is_pr_swap = true;

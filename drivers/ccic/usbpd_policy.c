@@ -2474,6 +2474,8 @@ policy_state usbpd_policy_prs_snk_src_transition_to_off(struct policy_data *poli
 
 	while (1) {
 		if (policy->plug_valid == 0) {
+			pr_info("%s, plug_valid == 0\n", __func__);
+			pd_data->phy_ops.set_power_role(pd_data, USBPD_DRP);
 			ret = PE_PRS_SNK_SRC_Transition_off;
 			break;
 		}

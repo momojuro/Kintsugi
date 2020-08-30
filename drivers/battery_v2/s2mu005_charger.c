@@ -169,7 +169,7 @@ static void s2mu005_charger_otg_control(struct s2mu005_charger_data *charger,
 			s2mu005_update_reg(charger->client, S2MU005_CHG_CTRL0,
 				5 << REG_MODE_SHIFT, REG_MODE_MASK);
 
-			mdelay(150);
+			msleep(150);
 			pr_info("%s: EVT4 OTG Control for factory mode\n", __func__);
 
 			/* set mode to Charger mode */

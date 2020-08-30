@@ -13,6 +13,5 @@ config TOUCHSCREEN_MELFAS_MSS100
 #          If unsure, say N.
 
 #          To compile this driver as a module, choose M here: the module will be called mms_ts.
-
 endif
 

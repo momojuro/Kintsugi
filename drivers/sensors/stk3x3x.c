@@ -534,16 +534,16 @@ static void stk3x3x_work_func_pocket_read(struct work_struct *work)
 	ps_data->pocket_prox = STK3X3X_POCKET_UNKNOWN;
 
 	ret = STK3X3X_REG_READ(ps_data, STK3X3X_STATE_REG);
-	if (ret < 0) {
+	if (ret < 0)
 		goto exit;
-	} else {
-		reg_value = (uint8_t)ret;
-	}
-
-	if (ps_data->intel_prst)
-		reg_value &= (~(STK3X3X_STATE_EN_PS_MASK | STK3X3X_STATE_EN_WAIT_MASK | STK3X3X_STATE_EN_INTELL_PRST_MASK));
 	else
-		reg_value &= (~(STK3X3X_STATE_EN_PS_MASK | STK3X3X_STATE_EN_WAIT_MASK));
+		reg_value = (uint8_t)ret;
+
+	reg_value &= (~(STK3X3X_STATE_EN_PS_MASK | STK3X3X_STATE_EN_WAIT_MASK | STK3X3X_STATE_EN_INTELL_PRST_MASK));
+
+	stk3x3x_set_ps_thd(ps_data, ps_data->prox_thd_h, ps_data->prox_thd_l);
+
+	reg_value |= (STK3X3X_STATE_EN_WAIT_MASK | STK3X3X_STATE_EN_PS_MASK | STK3X3X_STATE_EN_INTELL_PRST_MASK);
 
 
 	ret = STK3X3X_REG_READ_MODIFY_WRITE(ps_data, STK3X3X_STATE_REG, reg_value, 0xFF);
@@ -555,7 +555,7 @@ static void stk3x3x_work_func_pocket_read(struct work_struct *work)
 	if(ret < 0)
 		SENSOR_ERR("WAIT_REG failed %d\n", ret);
 
-	mdelay(10);
+	usleep_range(10000, 10000);
 
 	// check sunlight mode
 	ret = STK3X3X_REG_READ(ps_data, STK3X3X_SUNLIGHT_CHECK_REG);
@@ -586,7 +586,7 @@ static void stk3x3x_work_func_pocket_read(struct work_struct *work)
 			}
 		}
 		if (i < POCKET_DATA_NUM - 1)
-			mdelay(10);
+			usleep_range(10000, 10000);
 	}
 	read_adc = read_adc / POCKET_DATA_NUM;
 

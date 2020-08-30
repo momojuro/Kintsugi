@@ -294,3 +294,8 @@ config SEC_PERIPHERAL_SECURE_CHK
 	help
 	  This option supports secure check
 
+config SEC_DEBUG_SNAPSHOT_DISABLE
+	bool "Disable EXYNOS SNAPSHOT logging"
+	default n
+	help
+	  This option blocks exynos snapshot logging
